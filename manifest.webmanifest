@@ -1,0 +1,24 @@
+{
+  "name": "StreckenRadar",
+  "short_name": "Radar",
+  "description": "Wichtige Meldungen auf deiner Strecke",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1220",
+  "theme_color": "#101b2d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
