@@ -104,7 +104,7 @@
     <div class="statusrow"><span id="statusLight" class="light"></span><span class="eyebrow" id="statusEyebrow">Noch nicht geprüft</span></div>
     <h1 id="statusTitle">Bereit zur Prüfung</h1>
     <p class="explain" id="statusExplain">Beim Öffnen werden die verfügbaren Verkehrsmeldungen für dich geprüft.</p>
-    <div class="statusmeta"><span id="statusSource">Quellen: Hessen, BW, Autobahn</span><span id="statusTime">V0.4</span></div>
+    <div class="statusmeta"><span id="statusSource">Quellen: Hessen, BW, Autobahn</span><span id="statusTime">V0.5</span></div>
   </section>
   <button class="primary" id="checkButton"><svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg><span id="checkLabel">Jetzt prüfen</span></button>
   <div class="notice-head" style="margin-top:27px"><h2>Wichtige Hinweise</h2><span class="count" id="noticeCount">–</span></div>
@@ -124,7 +124,7 @@
     <a class="camera-outlink" href="https://blitzerfunk.de/" target="_blank" rel="noopener noreferrer">◉ Aktuelle mobile Meldungen extern ansehen ↗</a>
     <p class="camera-help" style="margin-top:10px">§ 23 Abs. 1c StVO: Die Verwendung von Blitzerwarnfunktionen während der Fahrt ist verboten. Bitte nur im Stand informieren.</p>
   </section>
-  <footer class="footer"><strong>Amtliche Meldungen, kein vollständiges Stau-Radar.</strong><br>Ohne Meldung ist eine freie Fahrt nicht garantiert.<br>Daten: MobiData BW · Verkehrsservice Hessen · Autobahn GmbH · OpenStreetMap<br>StreckenRadar V0.4.1</footer>
+  <footer class="footer"><strong>Amtliche Meldungen, kein vollständiges Stau-Radar.</strong><br>Ohne Meldung ist eine freie Fahrt nicht garantiert.<br>Daten: MobiData BW · Verkehrsservice Hessen · Autobahn GmbH · OpenStreetMap<br>StreckenRadar V0.5</footer>
 </div>
 <div class="shade" id="settingsShade" aria-hidden="true">
   <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -140,7 +140,7 @@
 </div>
 <script>
 'use strict';
-const VERSION='0.4.1';
+const VERSION='0.5';
 const STORE='streckenradar.prefs.v1';
 const $=id=>document.getElementById(id);
 const DEFAULT_WORK={label:'Heidelberg · Im Neuenheimer Feld',lat:49.4205,lon:8.6760};
@@ -180,7 +180,9 @@ function showGroupStatuses(outcomes,tasks){
   if(!selected.length){setFeedStatus(key,'skip',key.startsWith('ab')?'Für diese Prüfung nicht abgefragt':'Keine Abfrage');continue;}
   const ok=selected.filter(o=>o.result.status==='fulfilled'&&Array.isArray(o.result.value)).length;
   const count=selected.reduce((n,o)=>n+(o.result.status==='fulfilled'&&Array.isArray(o.result.value)?o.result.value.length:0),0);
-  setFeedStatus(key,ok===selected.length?'ok':ok?'partial':'fail',ok+'/'+selected.length+' Abrufe · '+count+' Datensätze · '+timeStamp());
+  const latest=selected.find(o=>o.result.status==='fulfilled'&&o.result.value?.sourceChecked)?.result.value;
+   const sourceTime=latest?new Date(latest.sourceChecked).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):timeStamp();
+   setFeedStatus(key,ok===selected.length?'ok':ok?'partial':'fail',ok+'/'+selected.length+' Abrufe · '+count+' Datensätze · '+(latest?'Quelle gespiegelt '+sourceTime:'Prüfung '+sourceTime));
  }
 }
 function loadSettings(){try{const j=JSON.parse(localStorage.getItem(STORE)||'{}');return {...DEFAULT,...j,work:j.work||DEFAULT_WORK};}catch{return {...DEFAULT};}}
@@ -207,6 +209,22 @@ function nearRoute(points,route){let best=Infinity;for(let p of points){for(let 
 function classify(text,type){const s=(text+' '+type).toLowerCase();if(/vollsperr|gesperrt|sperrung|road_closed|closure|unfall|geisterfahr|falschfahr|accident|brand|feuer|sturm|gefahr|hazard|object_on_road|hindernis/.test(s))return 3;if(/stau|zähflüss|stockend|behinder|fahrbahnvereng|spur.*gesperrt|tagesbaustelle|maintenance|warning|roadwork|baustelle|construction|teilsperr/.test(s))return 2;return 1;}
 function safeText(t){if(Array.isArray(t))t=t.join(' ');if(t==null)return '';const d=document.createElement('div');d.innerHTML=String(t).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').slice(0,1500);return(d.textContent||'').replace(/\s+/g,' ').trim().slice(0,360);}
 function normBW(json){return (json.features||[]).map(f=>{const p=f.properties||{},name=safeText(p.street||p.road||''),description=safeText(p.description||p.title||p.comment||'');return {id:'bw:'+String(p.id||f.id||name+description).slice(0,100),name:name||(description.slice(0,55)||'Straßenmeldung'),description:description||safeText(p.subtype||p.type)||'Baustelle oder Verkehrshinweis',type:safeText(p.type||p.subtype),points:coordsFromGeometry(f.geometry),source:'MobiData BW'};});}
+async function getHessenSnapshot(file,daily=false){
+ const url='data/'+file+'.json?t='+Date.now();
+ const doc=await timeoutFetch(url,12000);
+ if(!doc||doc.success!==true||!doc.data||!Array.isArray(doc.data.features)){
+   throw Error(doc?.error?'Hessen-Spiegel: '+String(doc.error).slice(0,80):'Hessen-Spiegel derzeit nicht verfügbar');
+ }
+ const checked=Date.parse(doc.checked_at);
+ const age=Date.now()-checked;
+ if(!Number.isFinite(age)||age < -300000||age > 75*60000)throw Error('Hessen-Spiegel nicht aktuell');
+ const original=doc.upstream_last_modified?Date.parse(doc.upstream_last_modified):NaN;
+ if(Number.isFinite(original)&&Date.now()-original > 48*3600000)throw Error('Hessen-Quelldaten älter als 48 Stunden');
+ const records=normHessen(doc.data,daily);
+ records.sourceChecked=doc.checked_at;
+ records.sourceModified=doc.upstream_last_modified;
+ return records;
+}
 function normHessen(json,daily=false){return (json.features||[]).map(f=>{const p=f.properties||{},name=safeText(p.street||p.strassennummer||p.title||'Straßenmeldung'),description=safeText([p.sperrungsart,p.kommentar,p.ortauskommentar,p.description].filter(Boolean).join(' · '));return{id:'he:'+String(f.id||p.name||name+description).slice(0,100),name,description:description||'Baustelle oder Verkehrshinweis',type:safeText(p.sperrungsart||p.title||''),points:coordsFromGeometry(f.geometry),source:'Verkehrsservice Hessen',daily};});}
 function normAutobahn(json,type){const list=Array.isArray(json)?json:Array.isArray(json[type])?json[type]:[];return list.filter(p=>!p.future).map(p=>{let pt=[];if(p.coordinate&&p.coordinate.lat!=null)pt=[{lat:+p.coordinate.lat,lon:+p.coordinate.long}];else if(typeof p.point==='string'){const a=p.point.split(',').map(Number);if(a.length===2&&a.every(Number.isFinite))pt=[{lon:a[0],lat:a[1]}];}const description=safeText(p.description);return{id:'ab:'+String(p.identifier||p.title||'').slice(0,100),name:safeText(p.title||p.subtitle||'Autobahn'),description:safeText([p.subtitle,description].filter(Boolean).join(' · ')),type:type==='closure'?'Sperrung':type==='warning'?'Warnung':'Baustelle',points:pt,source:'Autobahn GmbH'};});}
 function roadIds(routeJson){let refs=new Set();for(const leg of routeJson?.legs||[]){for(const st of leg.steps||[]){for(const str of [st.ref,st.name]){const m=String(str||'').match(/\bA\s*(\d{1,3})\b/i);if(m)refs.add('A'+m[1]);}}}return [...refs].slice(0,4);}
@@ -255,8 +273,8 @@ if(settings.mode!=='near'){setFeedStatus('routing','pending','Route wird berechn
 if(settings.mode==='near')setFeedStatus('routing','skip','Bei Umgebungsprüfung nicht nötig');
 const data=[];let good=0,fail=0;const feedTasks=[
 ['BW',()=>timeoutFetch('https://api.mobidata-bw.de/datasets/traffic/roadworks/roadworks_geojson.json',12500).then(normBW)],
-['Hessen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poiroadworks.json',12500).then(j=>normHessen(j))],
-['Hessen Tagesbaustellen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poidora.json',12500).then(j=>normHessen(j,true))]
+['Hessen',()=>getHessenSnapshot('hessen-roadworks')],
+['Hessen Tagesbaustellen',()=>getHessenSnapshot('hessen-daily',true)]
 ];
 if(settings.mode!=='near'){let roads=route.roads.length?route.roads:[];for(const road of roads)for(const type of ['warning','closure','roadworks'])feedTasks.push([road+' '+type,()=>timeoutFetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/'+type,12500).then(j=>normAutobahn(j,type))]);}
 
