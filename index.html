@@ -56,6 +56,21 @@
     .camera-entry{background:#1b3049;border:1px solid #395373;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;font-size:13px}
     .camera-entry small{color:#a9bfdb;font-size:12px;white-space:nowrap}
     .camera-outlink{display:inline-block;color:#8dbffd;font-size:12px;line-height:1.4;margin-top:12px}
+
+.feeds-panel{margin-top:18px;padding:16px 14px;background:#121f32;border:1px solid #354762;border-radius:18px}
+.feeds-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.feeds-head h2{font-size:17px;margin:0;font-weight:750}
+.feeds-head span{font-size:11px;color:#a6bed9;white-space:nowrap}
+.feeds-hint{font-size:11px;color:#9fb4ce;line-height:1.45;margin:9px 0}
+.feed-row{display:grid;grid-template-columns:11px minmax(0,1fr) auto;align-items:center;column-gap:9px;border-top:1px solid #273c56;padding:10px 2px;min-height:47px}
+.feed-dot{width:10px;height:10px;border-radius:50%;background:#7f92ac}
+.feed-dot.ok{background:var(--good)}.feed-dot.fail{background:var(--bad)}
+.feed-dot.partial{background:var(--warn)}.feed-dot.pending{background:var(--blue)}
+.feed-title{font-size:13px;font-weight:690;color:#e7f0fd}
+.feed-detail{font-size:11px;line-height:1.35;color:#99adc6;margin-top:3px;overflow-wrap:anywhere}
+.feed-state{font-size:11px;white-space:nowrap;font-weight:670;color:#a6b8ce}
+.feed-state.ok{color:var(--good)}.feed-state.fail{color:var(--bad)}
+.feed-state.partial{color:var(--warn)}.feed-state.pending{color:var(--blue)}
     .footer{padding:23px 5px 0;font-size:11px;text-align:center;line-height:1.55;color:#7d95b3}.footer strong{color:#a7bedc;font-weight:560}
     .shade{position:fixed;inset:0;background:#020811cf;z-index:3;display:none;align-items:flex-end;justify-content:center}.shade.open{display:flex}
     .sheet{background:#142238;border:1px solid #38506f;border-radius:25px 25px 0 0;width:min(100%,490px);max-height:92dvh;overflow:auto;padding:22px 19px calc(env(safe-area-inset-bottom) + 25px);box-shadow:0 -15px 55px #0007}
@@ -89,12 +104,18 @@
     <div class="statusrow"><span id="statusLight" class="light"></span><span class="eyebrow" id="statusEyebrow">Noch nicht geprüft</span></div>
     <h1 id="statusTitle">Bereit zur Prüfung</h1>
     <p class="explain" id="statusExplain">Beim Öffnen werden die verfügbaren Verkehrsmeldungen für dich geprüft.</p>
-    <div class="statusmeta"><span id="statusSource">Quellen: Hessen, BW, Autobahn</span><span id="statusTime">V0.1</span></div>
+    <div class="statusmeta"><span id="statusSource">Quellen: Hessen, BW, Autobahn</span><span id="statusTime">V0.4</span></div>
   </section>
   <button class="primary" id="checkButton"><svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg><span id="checkLabel">Jetzt prüfen</span></button>
   <div class="notice-head" style="margin-top:27px"><h2>Wichtige Hinweise</h2><span class="count" id="noticeCount">–</span></div>
   <div id="notices" class="notices"><div class="empty"><b>Keine Prüfung durchgeführt</b><span>Die Meldungen erscheinen hier nach der ersten Prüfung.</span></div></div>
   <a class="secondary" id="mapsLink" href="#" target="_blank" rel="noopener noreferrer" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 10.5 9 7l6 3 6-3v12l-6 3-6-3-6 3zM9 7v12M15 10v12"/></svg> Strecke mit Live-Verkehr öffnen ↗</a>
+
+  <section class="feeds-panel" aria-labelledby="feedsTitle">
+    <div class="feeds-head"><h2 id="feedsTitle">Status der Abfragen</h2><span id="feedsCheckedAt">Noch nicht geprüft</span></div>
+    <p class="feeds-hint">Grün = erfolgreich geladen, Rot = Fehler, Gelb = eingeschränkt, Grau = nicht abgefragt. Erfolgreicher Abruf bedeutet nicht, dass jede Meldung vollständig oder aktuell ist.</p>
+    <div id="feedsList" role="list" aria-live="polite" aria-label="Status der Datenquellen"></div>
+  </section>
   <section class="camera-panel" aria-labelledby="camerasTitle">
     <h2 id="camerasTitle" class="camera-title">Blitzer vor der Fahrt</h2>
     <p class="camera-help">Stationäre Messstellen aus OpenStreetMap. Nur manuell vor Fahrtbeginn abrufen, keine Live-Meldungen zu mobilen Blitzern. Die App warnt nicht während der Fahrt.</p>
@@ -103,7 +124,7 @@
     <a class="camera-outlink" href="https://blitzerfunk.de/" target="_blank" rel="noopener noreferrer">Aktuelle mobile Meldungen extern ansehen ↗</a>
     <p class="camera-help" style="margin-top:10px">§ 23 Abs. 1c StVO: Die Verwendung von Blitzerwarnfunktionen während der Fahrt ist verboten. Bitte nur im Stand informieren.</p>
   </section>
-  <footer class="footer"><strong>Amtliche Meldungen, kein vollständiges Stau-Radar.</strong><br>Ohne Meldung ist eine freie Fahrt nicht garantiert.<br>Daten: MobiData BW · Verkehrsservice Hessen · Autobahn GmbH · OpenStreetMap<br>StreckenRadar V0.3</footer>
+  <footer class="footer"><strong>Amtliche Meldungen, kein vollständiges Stau-Radar.</strong><br>Ohne Meldung ist eine freie Fahrt nicht garantiert.<br>Daten: MobiData BW · Verkehrsservice Hessen · Autobahn GmbH · OpenStreetMap<br>StreckenRadar V0.4</footer>
 </div>
 <div class="shade" id="settingsShade" aria-hidden="true">
   <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -119,12 +140,49 @@
 </div>
 <script>
 'use strict';
-const VERSION='0.3';
+const VERSION='0.4';
 const STORE='streckenradar.prefs.v1';
 const $=id=>document.getElementById(id);
 const DEFAULT_WORK={label:'Heidelberg · Im Neuenheimer Feld',lat:49.4205,lon:8.6760};
 const DEFAULT={home:null,work:DEFAULT_WORK,manualStart:null,startMode:'gps',mode:'work'};
 let settings=loadSettings(), checking=false, checkToken=0, lastCheckStarted=0, lastOrigin=null, lastDestination=null, lastFound=[], cameraToken=0;
+
+const FEED_NAMES=[['origin','Standort / Startpunkt'],['routing','Streckenberechnung'],['bw','Baustellen Baden-Württemberg'],['he','Baustellen Hessen'],['hedaily','Tagesbaustellen Hessen'],['abwarning','Autobahn: Warnungen / Unfälle'],['abclosure','Autobahn: Sperrungen'],['abroadworks','Autobahn: Baustellen'],['emergency','Polizei- und Rettungseinsätze'],['camera','Stationäre Blitzer (OSM)'],['mobile','Mobile Blitzer']];
+const FEED_LABEL={ok:'Erreichbar',fail:'Fehler',partial:'Eingeschränkt',skip:'Nicht geprüft',pending:'Prüfung …'};
+let feedStatuses={};
+function timeStamp(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+function renderFeedStatuses(){
+ const frag=document.createDocumentFragment();
+ for(const [key,title] of FEED_NAMES){
+  const info=feedStatuses[key]||{state:'skip',detail:'Noch nicht geprüft'};
+  const row=document.createElement('div');row.className='feed-row';row.setAttribute('role','listitem');
+  const dot=document.createElement('span');dot.className='feed-dot '+info.state;dot.setAttribute('aria-hidden','true');
+  const column=document.createElement('div'),heading=document.createElement('div'),detail=document.createElement('div'),state=document.createElement('span');
+  heading.className='feed-title';heading.textContent=title;
+  detail.className='feed-detail';detail.textContent=info.detail||'';
+  state.className='feed-state '+info.state;state.textContent=FEED_LABEL[info.state]||'–';
+  column.append(heading,detail);row.append(dot,column,state);frag.append(row);
+ }
+ $('feedsList').replaceChildren(frag);
+}
+function setFeedStatus(key,state,detail){feedStatuses[key]={state,detail};renderFeedStatuses();}
+function resetFeedStatuses(){
+ feedStatuses={};
+ for(const [key] of FEED_NAMES)feedStatuses[key]={state:'skip',detail:'Noch nicht geprüft'};
+ feedStatuses.emergency={state:'partial',detail:'Kein öffentlicher Einsatz-Liveticker; nur gemeldete Verkehrsfolgen'};
+ feedStatuses.camera={state:'skip',detail:'Nur separat und manuell vor Fahrtbeginn'};
+ feedStatuses.mobile={state:'skip',detail:'Kein eigener Live-Abruf; externer Link'};
+ $('feedsCheckedAt').textContent='Prüfung läuft';renderFeedStatuses();
+}
+function showGroupStatuses(outcomes,tasks){
+ for(const key of ['bw','he','hedaily','abwarning','abclosure','abroadworks']){
+  const selected=outcomes.map((result,i)=>({result,task:tasks[i]})).filter(o=>o.task.group===key);
+  if(!selected.length){setFeedStatus(key,'skip',key.startsWith('ab')?'Für diese Prüfung nicht abgefragt':'Keine Abfrage');continue;}
+  const ok=selected.filter(o=>o.result.status==='fulfilled'&&Array.isArray(o.result.value)).length;
+  const count=selected.reduce((n,o)=>n+(o.result.status==='fulfilled'&&Array.isArray(o.result.value)?o.result.value.length:0),0);
+  setFeedStatus(key,ok===selected.length?'ok':ok?'partial':'fail',ok+'/'+selected.length+' Abrufe · '+count+' Datensätze · '+timeStamp());
+ }
+}
 function loadSettings(){try{const j=JSON.parse(localStorage.getItem(STORE)||'{}');return {...DEFAULT,...j,work:j.work||DEFAULT_WORK};}catch{return {...DEFAULT};}}
 function persist(){try{localStorage.setItem(STORE,JSON.stringify(settings));}catch{}}
 function validLocation(o){return o&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(o.lat)<=90&&Math.abs(o.lon)<=180;}
