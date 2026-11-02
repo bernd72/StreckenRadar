@@ -244,21 +244,31 @@ try{
 finally{if(token===cameraToken){$('cameraCheck').disabled=false;$('cameraCheck').textContent='◎ Stationäre Blitzer erneut prüfen';}}
 }
 function googleLink(origin,destination){const v=a=>a.lat.toFixed(6)+','+a.lon.toFixed(6);return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(v(origin))+'&destination='+encodeURIComponent(v(destination))+'&travelmode=driving';}
-async function runCheck(){hideCameraResults();if(checking){checkToken++;}const token=++checkToken;lastCheckStarted=Date.now();setLoading(true);$('mapsLink').hidden=true;$('statusTime').textContent='Prüfung läuft';setStatus('Wird geprüft','Verkehr wird geprüft …','GPS, Strecke und amtliche Meldungen werden abgefragt.');$('noticeCount').textContent='…';renderNotices([]);$('noticeCount').textContent='…';renderMode();try{
-let origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;
+async function runCheck(){hideCameraResults();resetFeedStatuses();if(checking){checkToken++;}const token=++checkToken;lastCheckStarted=Date.now();setLoading(true);$('mapsLink').hidden=true;$('statusTime').textContent='Prüfung läuft';setStatus('Wird geprüft','Verkehr wird geprüft …','GPS, Strecke und amtliche Meldungen werden abgefragt.');$('noticeCount').textContent='…';renderNotices([]);$('noticeCount').textContent='…';renderMode();try{
+setFeedStatus('origin','pending','Standort wird ermittelt');let origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;
 if(!validLocation(origin)){openSettings('Bitte eine Startadresse eingeben oder GPS aktivieren.');throw Error('Startpunkt fehlt.');}
-if(token!==checkToken)return;
+setFeedStatus('origin','ok',(settings.startMode==='gps'?'GPS erhalten':'Manueller Startpunkt vorhanden')+' · '+timeStamp());if(token!==checkToken)return;
 let destination=settings.mode==='work'?settings.work:settings.mode==='home'?settings.home:null;
 if(settings.mode!=='near'&&!validLocation(destination)){openSettings('Bitte zuerst das Ziel für die gewählte Fahrtrichtung speichern.');throw Error('Das Ziel ist noch nicht eingerichtet.');}
 let route=null,approx=false,problems=[];
-if(settings.mode!=='near'){try{route=await roadRoute(origin,destination);}catch{approx=true;problems.push('Route');route={points:[origin,destination],distance:haversine(origin,destination),roads:[]};}if(token!==checkToken)return;$('routeDistance').textContent='~ '+Math.round(route.distance)+' km';$('mapsLink').href=googleLink(origin,destination);$('mapsLink').hidden=false;}
+if(settings.mode!=='near'){setFeedStatus('routing','pending','Route wird berechnet');try{route=await roadRoute(origin,destination);setFeedStatus('routing','ok','Strecke berechnet · '+timeStamp());}catch{approx=true;problems.push('Route');setFeedStatus('routing','fail','Routing nicht verfügbar; nur grobe Luftlinie');route={points:[origin,destination],distance:haversine(origin,destination),roads:[]};}if(token!==checkToken)return;$('routeDistance').textContent='~ '+Math.round(route.distance)+' km';$('mapsLink').href=googleLink(origin,destination);$('mapsLink').hidden=false;}
+if(settings.mode==='near')setFeedStatus('routing','skip','Bei Umgebungsprüfung nicht nötig');
 const data=[];let good=0,fail=0;const feedTasks=[
 ['BW',()=>timeoutFetch('https://api.mobidata-bw.de/datasets/traffic/roadworks/roadworks_geojson.json',12500).then(normBW)],
 ['Hessen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poiroadworks.json',12500).then(j=>normHessen(j))],
 ['Hessen Tagesbaustellen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poidora.json',12500).then(j=>normHessen(j,true))]
 ];
 if(settings.mode!=='near'){let roads=route.roads.length?route.roads:[];for(const road of roads)for(const type of ['warning','closure','roadworks'])feedTasks.push([road+' '+type,()=>timeoutFetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/'+type,12500).then(j=>normAutobahn(j,type))]);}
+
+for(const key of ['bw','he','hedaily'])setFeedStatus(key,'pending','Amtliche Daten werden geladen');
+const groupOf=(name)=>name==='BW'?'bw':name==='Hessen'?'he':name==='Hessen Tagesbaustellen'?'hedaily':name.endsWith(' warning')?'abwarning':name.endsWith(' closure')?'abclosure':name.endsWith(' roadworks')?'abroadworks':'unknown';
+const taskGroups=feedTasks.map(([name])=>({group:groupOf(name)}));
+for(const key of ['abwarning','abclosure','abroadworks']){
+ const found=taskGroups.some(g=>g.group===key);
+ setFeedStatus(key,found?'pending':'skip',found?'Autobahn-Daten werden geladen':settings.mode==='near'?'In der Umgebungsprüfung nicht abgefragt':'Keine Autobahn in der Route erkannt');
+}
 const response=await Promise.allSettled(feedTasks.map(([name,fn])=>fn()));if(token!==checkToken)return;
+showGroupStatuses(response,taskGroups);$('feedsCheckedAt').textContent='Abruf '+timeStamp();
 response.forEach((r,i)=>{if(r.status==='fulfilled'&&Array.isArray(r.value)){good++;data.push(...r.value);}else{fail++;problems.push(feedTasks[i][0]);}});
 const matches=listMatches(data,route?.points,origin,settings.mode,approx);lastFound=matches;lastOrigin=origin;lastDestination=destination;
 const partial=fail>0||approx;
@@ -269,7 +279,7 @@ else if(matches.length){setStatus(partial?'Hinweise · unvollständig':'Aktuelle
 else if(partial){setStatus('Eingeschränkte Prüfung','Nicht vollständig prüfbar','Keine passenden Meldungen in den geladenen Daten. Einzelne Quellen oder die genaue Route fehlen.','warn',source);}
 else{setStatus('Prüfung abgeschlossen','Keine wichtigen Hinweise','In den verfügbaren Meldungen wurden keine größeren Störungen in deiner Nähe gefunden.','good',source);}
 renderNotices(matches,partial);
-}catch(err){if(token!==checkToken)return;setStatus('Prüfung nicht möglich','Prüfung unterbrochen',err?.message||'Bitte Verbindung und Einstellungen prüfen.','warn');$('statusTime').textContent='–';$('notices').replaceChildren();renderNotices([],true);}
+}catch(err){if(token!==checkToken)return;if(feedStatuses.origin?.state==='pending'||feedStatuses.origin?.state==='skip')setFeedStatus('origin','fail',err?.message||'Startpunkt nicht verfügbar');if(feedStatuses.routing?.state==='pending')setFeedStatus('routing','fail','Route nicht verfügbar');$('feedsCheckedAt').textContent='Fehler · '+timeStamp();setStatus('Prüfung nicht möglich','Prüfung unterbrochen',err?.message||'Bitte Verbindung und Einstellungen prüfen.','warn');$('statusTime').textContent='–';$('notices').replaceChildren();renderNotices([],true);}
 finally{if(token===checkToken)setLoading(false);}}
 for(const btn of document.querySelectorAll('.tab'))btn.addEventListener('click',()=>{settings.mode=btn.dataset.mode;persist();renderMode();void runCheck();});
 $('openSettings').addEventListener('click',()=>openSettings());$('closeSettings').addEventListener('click',closeSettings);$('settingsShade').addEventListener('click',e=>{if(e.target===$('settingsShade'))closeSettings();});
@@ -277,7 +287,7 @@ $('checkButton').addEventListener('click',()=>void runCheck());$('cameraCheck').
 $('saveHomeGps').addEventListener('click',async()=>{const btn=$('saveHomeGps');btn.disabled=true;setFeedback('GPS-Position wird ermittelt …');try{const p=await gpsLocation();settings.home={...p,label:'Gespeicherter GPS-Standort'};persist();updateFields();setFeedback('Zuhause wurde nur auf diesem Gerät gespeichert.');if(settings.mode==='home')void runCheck();}catch(e){setFeedback(e.message);}finally{btn.disabled=false;}});
 for(const [id,mode] of [['startGps','gps'],['startManual','manual']])$(id).addEventListener('click',()=>{settings.startMode=mode;persist();updateFields();if(mode==='gps')setFeedback('GPS wird beim nächsten Prüfen verwendet.');else setFeedback('Bitte Startadresse eingeben und speichern.');});
 $('clearSaved').addEventListener('click',()=>{if(!confirm('Alle lokal gespeicherten Ziele und Einstellungen löschen?'))return;localStorage.removeItem(STORE);settings={...DEFAULT};updateFields();renderMode();setFeedback('Lokale Daten gelöscht.');});
-renderMode();updateFields();window.addEventListener('pageshow',e=>{if(e.persisted&&!checking)void runCheck();});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});window.addEventListener('focus',()=>{if(!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});setTimeout(()=>void runCheck(),250);
+renderMode();updateFields();resetFeedStatuses();$('feedsCheckedAt').textContent='Noch nicht geprüft';window.addEventListener('pageshow',e=>{if(e.persisted&&!checking)void runCheck();});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});window.addEventListener('focus',()=>{if(!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});setTimeout(()=>void runCheck(),250);
 </script>
 </body>
 </html>
