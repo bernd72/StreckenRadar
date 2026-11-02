@@ -218,7 +218,7 @@ function hideCameraResults(){cameraToken++;$('cameraResults').hidden=true;$('cam
 function cameraMessage(message){const d=document.createElement('div');d.className='camera-msg';d.textContent=message;$('cameraResults').append(d);}
 function cameraBounds(points){const lat=points.map(p=>p.lat),lon=points.map(p=>p.lon);const minLat=Math.max(-90,Math.min(...lat)-.025),maxLat=Math.min(90,Math.max(...lat)+.025);const minLon=Math.max(-180,Math.min(...lon)-.035),maxLon=Math.min(180,Math.max(...lon)+.035);return [minLat,minLon,maxLat,maxLon].map(n=>n.toFixed(5)).join(',');}
 async function checkCameras(){
-const token=++cameraToken;const area=$('cameraResults');area.replaceChildren();area.hidden=false;$('cameraCheck').disabled=true;$('cameraCheck').textContent='Stationäre Messstellen werden gesucht …';
+const token=++cameraToken;setFeedStatus('camera','pending','Abruf der OSM-Messstellen läuft');const area=$('cameraResults');area.replaceChildren();area.hidden=false;$('cameraCheck').disabled=true;$('cameraCheck').textContent='Stationäre Messstellen werden gesucht …';
 try{
   // This is a manually requested, pre-trip query. No automatic speed-camera alerts or background polling.
   let origin=lastOrigin;if(!origin||Date.now()-lastCheckStarted>900000){origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;}
@@ -236,11 +236,11 @@ try{
   if(token!==cameraToken)return;
   if(!Array.isArray(reply.elements))throw Error('Unvollständige Antwort von OpenStreetMap.');
   let items=reply.elements.filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon)).map(e=>({id:e.id,lat:e.lat,lon:e.lon,dist:settings.mode==='near'?haversine(origin,e):nearRoute([e],pts)})).filter(e=>e.dist<=(settings.mode==='near'?12:0.6)).sort((a,b)=>a.dist-b.dist);
-  const count=items.length;cameraMessage(count?`${count} kartierte stationäre Messstelle${count===1?'':'n'} ${settings.mode==='near'?'in deiner Umgebung':'in der Nähe der Route'} gefunden. Fahrtrichtung und Betriebsstatus sind nicht bestätigt.`:'Keine eingetragenen stationären Messstellen gefunden. Das bedeutet nicht, dass keine Kontrollen stattfinden.');
+  const count=items.length;setFeedStatus('camera','ok',count+' OSM-Einträge empfangen · '+timeStamp()+' (kein Live-Nachweis)');cameraMessage(count?`${count} kartierte stationäre Messstelle${count===1?'':'n'} ${settings.mode==='near'?'in deiner Umgebung':'in der Nähe der Route'} gefunden. Fahrtrichtung und Betriebsstatus sind nicht bestätigt.`:'Keine eingetragenen stationären Messstellen gefunden. Das bedeutet nicht, dass keine Kontrollen stattfinden.');
   for(const item of items.slice(0,5)){const div=document.createElement('div');div.className='camera-entry';const a=document.createElement('span');a.textContent='Stationäre Messstelle (OSM)';const b=document.createElement('small');b.textContent='ca. '+kmLabel(item.dist);div.append(a,b);area.append(div);}
   if(count>5)cameraMessage(`Weitere ${count-5} Einträge werden aus Gründen der Übersichtlichkeit nicht angezeigt.`);
   cameraMessage('Quelle: © OpenStreetMap-Mitwirkende (ODbL). Die Einträge sind keine aktuellen mobilen Meldungen.');
-}catch(e){if(token!==cameraToken)return;cameraMessage('Messstellen derzeit nicht verfügbar: '+(e?.message||'Netzwerkfehler')+'.');}
+}catch(e){if(token!==cameraToken)return;setFeedStatus('camera','fail','OpenStreetMap-Abruf fehlgeschlagen · '+timeStamp());cameraMessage('Messstellen derzeit nicht verfügbar: '+(e?.message||'Netzwerkfehler')+'.');}
 finally{if(token===cameraToken){$('cameraCheck').disabled=false;$('cameraCheck').textContent='◎ Stationäre Blitzer erneut prüfen';}}
 }
 function googleLink(origin,destination){const v=a=>a.lat.toFixed(6)+','+a.lon.toFixed(6);return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(v(origin))+'&destination='+encodeURIComponent(v(destination))+'&travelmode=driving';}
