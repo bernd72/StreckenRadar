@@ -148,7 +148,7 @@ const DEFAULT={home:null,work:DEFAULT_WORK,manualStart:null,startMode:'gps',mode
 let settings=loadSettings(), checking=false, checkToken=0, lastCheckStarted=0, lastOrigin=null, lastDestination=null, lastFound=[], cameraToken=0;
 
 const FEED_NAMES=[['origin','Standort / Startpunkt'],['routing','Streckenberechnung'],['bw','Baustellen Baden-Württemberg'],['he','Baustellen Hessen'],['hedaily','Tagesbaustellen Hessen'],['abwarning','Autobahn: Warnungen / Unfälle'],['abclosure','Autobahn: Sperrungen'],['abroadworks','Autobahn: Baustellen'],['emergency','Polizei- und Rettungseinsätze'],['camera','Stationäre Blitzer (OSM)'],['mobile','Mobile Blitzer']];
-const FEED_LABEL={ok:'Erreichbar',fail:'Fehler',partial:'Eingeschränkt',skip:'Nicht geprüft',pending:'Prüfung …'};
+const FEED_LABEL={ok:'Abgerufen',fail:'Fehler',partial:'Eingeschränkt',skip:'Nicht geprüft',pending:'Prüfung …'};
 let feedStatuses={};
 function timeStamp(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
 function renderFeedStatuses(){
@@ -247,9 +247,9 @@ function googleLink(origin,destination){const v=a=>a.lat.toFixed(6)+','+a.lon.to
 async function runCheck(){hideCameraResults();resetFeedStatuses();if(checking){checkToken++;}const token=++checkToken;lastCheckStarted=Date.now();setLoading(true);$('mapsLink').hidden=true;$('statusTime').textContent='Prüfung läuft';setStatus('Wird geprüft','Verkehr wird geprüft …','GPS, Strecke und amtliche Meldungen werden abgefragt.');$('noticeCount').textContent='…';renderNotices([]);$('noticeCount').textContent='…';renderMode();try{
 setFeedStatus('origin','pending','Standort wird ermittelt');let origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;
 if(!validLocation(origin)){openSettings('Bitte eine Startadresse eingeben oder GPS aktivieren.');throw Error('Startpunkt fehlt.');}
-setFeedStatus('origin','ok',(settings.startMode==='gps'?'GPS erhalten':'Manueller Startpunkt vorhanden')+' · '+timeStamp());if(token!==checkToken)return;
+if(token!==checkToken)return;setFeedStatus('origin','ok',(settings.startMode==='gps'?'GPS erhalten':'Manueller Startpunkt vorhanden')+' · '+timeStamp());
 let destination=settings.mode==='work'?settings.work:settings.mode==='home'?settings.home:null;
-if(settings.mode!=='near'&&!validLocation(destination)){openSettings('Bitte zuerst das Ziel für die gewählte Fahrtrichtung speichern.');throw Error('Das Ziel ist noch nicht eingerichtet.');}
+if(settings.mode!=='near'&&!validLocation(destination)){setFeedStatus('routing','fail','Fahrziel nicht eingerichtet');openSettings('Bitte zuerst das Ziel für die gewählte Fahrtrichtung speichern.');throw Error('Das Ziel ist noch nicht eingerichtet.');}
 let route=null,approx=false,problems=[];
 if(settings.mode!=='near'){setFeedStatus('routing','pending','Route wird berechnet');try{route=await roadRoute(origin,destination);setFeedStatus('routing','ok','Strecke berechnet · '+timeStamp());}catch{approx=true;problems.push('Route');setFeedStatus('routing','fail','Routing nicht verfügbar; nur grobe Luftlinie');route={points:[origin,destination],distance:haversine(origin,destination),roads:[]};}if(token!==checkToken)return;$('routeDistance').textContent='~ '+Math.round(route.distance)+' km';$('mapsLink').href=googleLink(origin,destination);$('mapsLink').hidden=false;}
 if(settings.mode==='near')setFeedStatus('routing','skip','Bei Umgebungsprüfung nicht nötig');
