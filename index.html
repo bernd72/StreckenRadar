@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b2d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StreckenRadar">
+  <meta name="description" content="Kurze Verkehrs- und Baustellenhinweise für deine Strecke und deinen aktuellen Standort.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <title>StreckenRadar</title>
+  <style>
+    :root {color-scheme:dark; --bg:#0a1220;--card:#152237;--card2:#18283f;--line:#304057;--text:#eff5ff;--muted:#adbed3;--blue:#77b8fc;--blue2:#3979e5;--good:#6de7b3;--warn:#ffcb73;--bad:#ff8589;--radius:21px;}
+    *{box-sizing:border-box}html{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,Arial,sans-serif;-webkit-text-size-adjust:100%;background:var(--bg)}
+    body{margin:0;color:var(--text);min-height:100svh;background:radial-gradient(ellipse 140% 38% at 50% -5%,#1d3760 0%,transparent 74%),var(--bg)}
+    button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+    .app{width:min(100%,490px);margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 17px calc(env(safe-area-inset-bottom) + 32px)}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 3px 23px}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0}.radar{width:44px;height:44px;border-radius:14px;flex:none;background:linear-gradient(140deg,#2b598d,#152946);display:grid;place-items:center;border:1px solid #45628b;box-shadow:inset 0 0 20px #1b559540}
+    .radar svg{width:29px;height:29px}.brand-title{font-size:21px;letter-spacing:-.5px;font-weight:760;white-space:nowrap}.brand-sub{font-size:12px;color:var(--muted);padding-top:3px;white-space:nowrap}
+    .iconbtn{height:44px;width:44px;flex:none;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--text);display:grid;place-items:center}
+    .iconbtn svg{width:21px;height:21px}
+    .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;background:#101e32;padding:5px;border:1px solid #263950;border-radius:18px}
+    .tab{border:0;background:transparent;color:var(--muted);border-radius:13px;padding:13px 3px 12px;min-width:0;font-size:13px;font-weight:680;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+    .tab[aria-selected=true]{color:var(--text);background:#28436a;box-shadow:0 2px 10px #0002}.tab svg{width:15px;height:15px;flex-shrink:0}
+    .section-caption{margin:20px 4px 9px;font-size:12px;color:#91a7c2;text-transform:uppercase;letter-spacing:.11em;font-weight:680}
+    .route{display:flex;align-items:center;gap:9px;padding:13px 16px;border:1px solid var(--line);border-radius:17px;background:#121f32;min-height:56px}
+    .route-icon{color:var(--blue);width:20px;display:grid;place-items:center;flex:none}.route-name{min-width:0;flex:1;font-size:14px;font-weight:640;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.route-next{color:var(--muted);font-size:12px;white-space:nowrap}
+    .hero{margin-top:13px;padding:23px 19px 20px;background:linear-gradient(175deg,#182b43,#142136);border:1px solid #334a68;border-radius:var(--radius);min-height:218px}
+    .statusrow{display:flex;align-items:center;gap:10px}.light{width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 5px #77b8fc20;flex:none}.light.good{background:var(--good);box-shadow:0 0 0 5px #6de7b320}.light.warn{background:var(--warn);box-shadow:0 0 0 5px #ffcb7320}.light.bad{background:var(--bad);box-shadow:0 0 0 5px #ff858920}
+    .eyebrow{font-size:12px;letter-spacing:.06em;color:#bcd0e6;font-weight:700;text-transform:uppercase}
+    h1{font-size:clamp(23px,6vw,29px);line-height:1.16;letter-spacing:-.65px;margin:23px 0 9px;font-weight:750;min-height:34px}
+    .explain{font-size:14px;color:#b8c9de;line-height:1.46;min-height:42px;margin:0}
+    .statusmeta{border-top:1px solid #334960;min-height:38px;margin-top:21px;padding-top:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#9fb5ce}
+    .statusmeta span{min-width:0}.statusmeta span:first-child{flex:1}
+    .primary{width:100%;margin-top:13px;height:61px;border:0;border-radius:18px;background:linear-gradient(120deg,#6caffd,#3e87f4);color:#081b33;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 24px #277ae333}
+    .primary:disabled{opacity:.79;cursor:wait}.primary svg{width:22px;height:22px}.spin{animation:rotate 1.1s linear infinite}@keyframes rotate{to{transform:rotate(360deg)}}
+    .notice-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 4px 0}.notice-head h2{margin:0;font-size:18px;letter-spacing:-.25px}.count{color:#a9bfd9;font-size:12px}
+    .notices{margin-top:12px;display:grid;gap:10px;min-height:110px}.notice{background:#152237;border:1px solid #304158;border-radius:17px;padding:15px 15px 14px;overflow-wrap:anywhere}.notice.emergency{border-color:#7b5359}.notice.high{border-color:#675a42}
+    .notice-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.chip{font-size:11px;font-weight:750;padding:5px 9px;border-radius:999px;color:#f7d4ae;background:#59452c;white-space:nowrap}.chip.red{background:#582f37;color:#ffc5ca}.chip.grey{background:#304058;color:#bdcce0}
+    .km{font-size:11px;color:#a8bad0;white-space:nowrap}.notice-title{font-size:15px;font-weight:730;line-height:1.35;margin:11px 0 6px}.notice-desc{font-size:13px;line-height:1.4;color:#b3c4d8;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .notice-source{font-size:11px;color:#7f98b7;margin-top:11px}.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);border:1px dashed #34455c;border-radius:17px;padding:20px 14px;gap:6px;min-height:111px}.empty b{font-weight:650;color:#d3dfee;font-size:14px}.empty span{font-size:12px;line-height:1.45}
+    .secondary{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:15px;background:#18283f;color:#dcecff;margin-top:15px;min-height:48px;padding:10px;font-weight:670;font-size:14px;text-decoration:none}
+    .secondary svg{width:18px;height:18px}.secondary[hidden]{display:none}
+    .camera-panel{margin-top:17px;background:#121f32;border:1px solid #354762;border-radius:18px;padding:16px}
+    .camera-title{margin:0 0 6px;font-size:17px;font-weight:750;letter-spacing:-.2px}
+    .camera-help{font-size:12px;color:#aebfd3;line-height:1.45;margin:0}
+    .camera-btn{width:100%;display:flex;justify-content:center;align-items:center;gap:8px;margin-top:13px;min-height:48px;background:#213c5e;color:#e2f1ff;border:1px solid #57769e;border-radius:13px;font-size:14px;font-weight:740}
+    .camera-btn:disabled{opacity:.6}
+    .camera-result{margin-top:13px;display:grid;gap:9px}
+    .camera-result[hidden]{display:none}
+    .camera-msg{font-size:12px;color:#bbcee6;line-height:1.45}
+    .camera-entry{background:#1b3049;border:1px solid #395373;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;font-size:13px}
+    .camera-entry small{color:#a9bfdb;font-size:12px;white-space:nowrap}
+    .camera-outlink{display:inline-block;color:#8dbffd;font-size:12px;line-height:1.4;margin-top:12px}
+    .footer{padding:23px 5px 0;font-size:11px;text-align:center;line-height:1.55;color:#7d95b3}.footer strong{color:#a7bedc;font-weight:560}
+    .shade{position:fixed;inset:0;background:#020811cf;z-index:3;display:none;align-items:flex-end;justify-content:center}.shade.open{display:flex}
+    .sheet{background:#142238;border:1px solid #38506f;border-radius:25px 25px 0 0;width:min(100%,490px);max-height:92dvh;overflow:auto;padding:22px 19px calc(env(safe-area-inset-bottom) + 25px);box-shadow:0 -15px 55px #0007}
+    .sheet-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.sheet h2{font-size:21px;margin:4px 0 5px}.close{width:37px;height:37px;font-size:23px;border-radius:12px;background:#273852;color:var(--text);border:0}
+    .tip{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 20px}.field{margin-top:18px}.field label{display:block;font-size:13px;font-weight:730;margin-bottom:9px}.addressrow{display:flex;align-items:stretch;gap:8px}.field input{min-width:0;width:100%;height:46px;padding:0 12px;background:#0b1729;border:1px solid #40546f;border-radius:11px;color:#fff;outline-offset:2px;font-size:16px}.smallbtn{height:46px;border:1px solid #526d92;border-radius:11px;padding:0 13px;background:#284269;color:#e1eeff;white-space:nowrap;font-size:13px;font-weight:750}.field-help{font-size:11px;line-height:1.4;color:#95a9c4;margin-top:7px;min-height:15px}
+    .radio-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.radio{border:1px solid #435772;border-radius:12px;background:#192c44;padding:11px 4px;color:#a6b9d3;font-weight:660;font-size:13px}.radio.active{background:#2b4c79;color:#fff;border-color:#5d92d5}
+    .gpssave{margin-top:9px;min-height:41px;width:100%;border:1px solid #436080;border-radius:12px;background:#1a304c;color:#b7d9ff;font-size:13px;font-weight:680}
+    .tiny{color:#9db0c9;font-size:11px;line-height:1.6;margin-top:17px}.tiny b{color:#c6d5e6}.dangerlink{background:none;border:0;text-decoration:underline;color:#b2c9e7;padding:12px 3px;font-size:12px}
+    #sheetFeedback{font-size:12px;margin-top:14px;color:var(--warn);min-height:16px;line-height:1.45}
+    @media (max-width:355px){.app{padding-left:12px;padding-right:12px}.tab{font-size:12px;gap:3px}.tab svg{width:13px;height:13px}.brand-title{font-size:19px}}
+    @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="radar" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="11.5" stroke="#a4d5ff" stroke-width="1.4"/><circle cx="16" cy="16" r="6.5" stroke="#a4d5ff" stroke-width="1.4"/><path d="M16 16 L23.5 7.5" stroke="#7cedbf" stroke-width="2.8" stroke-linecap="round"/><circle cx="16" cy="16" r="2.3" fill="#7cedbf"/></svg></div>
+      <div><div class="brand-title">StreckenRadar</div><div class="brand-sub">Wichtiges auf deinem Weg</div></div>
+    </div>
+    <button class="iconbtn" id="openSettings" aria-label="Einstellungen öffnen" title="Einstellungen"><svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-1.9 1.9-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.5V20h-2.7v-.11a1.65 1.65 0 0 0-1-1.5 1.65 1.65 0 0 0-1.82.33l-.06.06-1.9-1.9.06-.06A1.65 1.65 0 0 0 7.9 15a1.65 1.65 0 0 0-1.5-1H6.3v-2.7h.11a1.65 1.65 0 0 0 1.5-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06 1.9-1.9.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.5V5.3H15v.11a1.65 1.65 0 0 0 1 1.5 1.65 1.65 0 0 0 1.82-.33l.06-.06 1.9 1.9-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.5 1H21v2.7h-.11a1.65 1.65 0 0 0-1.5 1Z" transform="translate(-.7 -.7)"/></svg></button>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Prüfungsart">
+    <button class="tab" id="modeWork" role="tab" data-mode="work" aria-selected="true"><span>↗</span> Zur Arbeit</button>
+    <button class="tab" id="modeHome" role="tab" data-mode="home" aria-selected="false"><span>↙</span> Nach Hause</button>
+    <button class="tab" id="modeNear" role="tab" data-mode="near" aria-selected="false"><span>◎</span> Hier vor Ort</button>
+  </nav>
+  <p class="section-caption">Deine Prüfung</p>
+  <div class="route"><span class="route-icon" aria-hidden="true">⌖</span><span class="route-name" id="routeName">Aktueller Standort → Arbeit</span><span class="route-next" id="routeDistance"></span></div>
+  <section class="hero" role="status" aria-live="polite" aria-atomic="true">
+    <div class="statusrow"><span id="statusLight" class="light"></span><span class="eyebrow" id="statusEyebrow">Noch nicht geprüft</span></div>
+    <h1 id="statusTitle">Bereit zur Prüfung</h1>
+    <p class="explain" id="statusExplain">Beim Öffnen werden die verfügbaren Verkehrsmeldungen für dich geprüft.</p>
+    <div class="statusmeta"><span id="statusSource">Quellen: Hessen, BW, Autobahn</span><span id="statusTime">V0.1</span></div>
+  </section>
+  <button class="primary" id="checkButton"><svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg><span id="checkLabel">Jetzt prüfen</span></button>
+  <div class="notice-head" style="margin-top:27px"><h2>Wichtige Hinweise</h2><span class="count" id="noticeCount">–</span></div>
+  <div id="notices" class="notices"><div class="empty"><b>Keine Prüfung durchgeführt</b><span>Die Meldungen erscheinen hier nach der ersten Prüfung.</span></div></div>
+  <a class="secondary" id="mapsLink" href="#" target="_blank" rel="noopener noreferrer" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 10.5 9 7l6 3 6-3v12l-6 3-6-3-6 3zM9 7v12M15 10v12"/></svg> Strecke mit Live-Verkehr öffnen ↗</a>
+  <section class="camera-panel" aria-labelledby="camerasTitle">
+    <h2 id="camerasTitle" class="camera-title">Blitzer vor der Fahrt</h2>
+    <p class="camera-help">Stationäre Messstellen aus OpenStreetMap. Nur manuell vor Fahrtbeginn abrufen, keine Live-Meldungen zu mobilen Blitzern. Die App warnt nicht während der Fahrt.</p>
+    <button type="button" class="camera-btn" id="cameraCheck">◎ Stationäre Blitzer prüfen</button>
+    <div id="cameraResults" class="camera-result" hidden aria-live="polite"></div>
+    <a class="camera-outlink" href="https://blitzerfunk.de/" target="_blank" rel="noopener noreferrer">Aktuelle mobile Meldungen extern ansehen ↗</a>
+    <p class="camera-help" style="margin-top:10px">§ 23 Abs. 1c StVO: Die Verwendung von Blitzerwarnfunktionen während der Fahrt ist verboten. Bitte nur im Stand informieren.</p>
+  </section>
+  <footer class="footer"><strong>Amtliche Meldungen, kein vollständiges Stau-Radar.</strong><br>Ohne Meldung ist eine freie Fahrt nicht garantiert.<br>Daten: MobiData BW · Verkehrsservice Hessen · Autobahn GmbH · OpenStreetMap<br>StreckenRadar V0.3</footer>
+</div>
+<div class="shade" id="settingsShade" aria-hidden="true">
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="sheet-top"><h2 id="settingsTitle">Einstellungen</h2><button class="close" id="closeSettings" aria-label="Schließen">×</button></div>
+    <p class="tip">Adressen und Positionen werden nur in diesem Browser gespeichert – nicht im öffentlichen Quellcode. Zur Routenberechnung werden Koordinaten an Kartendienste übertragen.</p>
+    <div class="field"><label for="homeAddress">Ziel: Zuhause</label><div class="addressrow"><input type="text" id="homeAddress" placeholder="Adresse oder Ort" autocapitalize="words" autocomplete="street-address"><button class="smallbtn" id="saveHome">Speichern</button></div><div class="field-help" id="homeSaved">Noch kein Ziel gespeichert.</div><button class="gpssave" id="saveHomeGps">⌖ Aktuellen GPS-Standort als Zuhause speichern</button></div>
+    <div class="field"><label for="workAddress">Ziel: Arbeit</label><div class="addressrow"><input type="text" id="workAddress" placeholder="Adresse oder Ort" autocapitalize="words" autocomplete="off"><button class="smallbtn" id="saveWork">Speichern</button></div><div class="field-help" id="workSaved">Ziel bereits eingerichtet.</div></div>
+    <div class="field"><label>Startpunkt der Prüfung</label><div class="radio-row"><button class="radio active" id="startGps" aria-pressed="true">⌖ GPS-Position</button><button class="radio" id="startManual" aria-pressed="false">Adresse eingeben</button></div><div id="manualStartFields" hidden><div class="addressrow" style="margin-top:10px"><input type="text" id="startAddress" placeholder="Startadresse oder Ort" aria-label="Startadresse"><button class="smallbtn" id="saveStart">Speichern</button></div><div class="field-help" id="startSaved"></div></div></div>
+    <div id="sheetFeedback" role="status" aria-live="polite"></div>
+    <p class="tiny"><b>Datenschutz:</b> Ziele bleiben in deinem lokalen Browserspeicher. Erst bei der Prüfung werden die benötigten Positionen an den Routen- und Kartendienst übermittelt. Beim Löschen von Websitedaten verschwinden die gespeicherten Ziele.</p>
+    <button class="dangerlink" id="clearSaved">Gespeicherte Adressen und Einstellungen löschen</button>
+  </section>
+</div>
+<script>
+'use strict';
+const VERSION='0.3';
+const STORE='streckenradar.prefs.v1';
+const $=id=>document.getElementById(id);
+const DEFAULT_WORK={label:'Heidelberg · Im Neuenheimer Feld',lat:49.4205,lon:8.6760};
+const DEFAULT={home:null,work:DEFAULT_WORK,manualStart:null,startMode:'gps',mode:'work'};
+let settings=loadSettings(), checking=false, checkToken=0, lastCheckStarted=0, lastOrigin=null, lastDestination=null, lastFound=[], cameraToken=0;
+function loadSettings(){try{const j=JSON.parse(localStorage.getItem(STORE)||'{}');return {...DEFAULT,...j,work:j.work||DEFAULT_WORK};}catch{return {...DEFAULT};}}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(settings));}catch{}}
+function validLocation(o){return o&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(o.lat)<=90&&Math.abs(o.lon)<=180;}
+function setStatus(t,headline,detail,kind='',source='Quellen: Hessen, BW, Autobahn'){$('statusLight').className='light'+(kind?' '+kind:'');$('statusEyebrow').textContent=t;$('statusTitle').textContent=headline;$('statusExplain').textContent=detail;$('statusSource').textContent=source;}
+function setLoading(on){checking=on;$('checkButton').disabled=on;$('checkLabel').textContent=on?'Prüfe Verkehrsdaten …':'Erneut prüfen';$('refreshIcon').classList.toggle('spin',on);}
+function renderMode(){for(const btn of document.querySelectorAll('.tab'))btn.setAttribute('aria-selected',String(btn.dataset.mode===settings.mode));const m=settings.mode;$('routeName').textContent=m==='near'?'Aktuelle Umgebung (12 km)':`Aktueller Start → ${m==='home'?'Zuhause':'Arbeit'}`;$('routeDistance').textContent='';}
+function updateFields(){$('homeAddress').value=settings.home?.label==='Gespeicherter GPS-Standort'?'':settings.home?.label||'';$('workAddress').value=settings.work?.label||'';$('startAddress').value=settings.manualStart?.label||'';$('homeSaved').textContent=settings.home?'Lokal gespeichert.':'Noch nicht gespeichert.';$('workSaved').textContent=settings.work?'Lokal gespeichert.':'Noch nicht gespeichert.';$('startSaved').textContent=settings.manualStart?'Lokal gespeichert.':'Noch nicht gespeichert.';const gps=settings.startMode==='gps';$('startGps').classList.toggle('active',gps);$('startManual').classList.toggle('active',!gps);$('startGps').setAttribute('aria-pressed',String(gps));$('startManual').setAttribute('aria-pressed',String(!gps));$('manualStartFields').hidden=gps;}
+function openSettings(msg=''){$('settingsShade').classList.add('open');$('settingsShade').setAttribute('aria-hidden','false');updateFields();$('sheetFeedback').textContent=msg;}
+function closeSettings(){$('settingsShade').classList.remove('open');$('settingsShade').setAttribute('aria-hidden','true');}
+function setFeedback(message){$('sheetFeedback').textContent=message;}
+function timeoutFetch(url,ms=9500){const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),ms);return fetch(url,{signal:ctrl.signal,cache:'no-store',credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).finally(()=>clearTimeout(timer));}
+async function geocode(q){q=q.trim();if(q.length<3)throw new Error('Bitte eine vollständige Adresse oder einen Ort eingeben.');let hits=[];try{let j=await timeoutFetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=5&lang=de',11000);hits=(j.features||[]).filter(f=>Array.isArray(f.geometry?.coordinates)&&f.geometry.coordinates.length>=2);}catch{}if(!hits.length){let j=await timeoutFetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),11000);if(j?.length)return {label:q,lat:+j[0].lat,lon:+j[0].lon};throw new Error('Adresse nicht gefunden. Bitte genauer eingeben.');}
+const f=hits[0];return {label:q,lon:+f.geometry.coordinates[0],lat:+f.geometry.coordinates[1]};}
+function gpsLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('Standortfunktion wird nicht unterstützt.'));return;}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude,label:'GPS-Position'}),e=>reject(new Error(e.code===1?'Standort nicht erlaubt. Bitte GPS in Safari zulassen oder eine Startadresse eingeben.':e.code===2?'GPS-Position momentan nicht verfügbar.':'GPS-Zeitüberschreitung. Bitte erneut prüfen oder eine Startadresse eingeben.')),{enableHighAccuracy:true,timeout:13000,maximumAge:120000});});}
+async function saveAddress(field){const names={home:['homeAddress','homeSaved'],work:['workAddress','workSaved'],manualStart:['startAddress','startSaved']};const [id,info]=names[field],btn=field==='home'?$('saveHome'):field==='work'?$('saveWork'):$('saveStart');let q=$(id).value.trim();btn.disabled=true;setFeedback('Adresse wird gesucht …');try{let place=await geocode(q);settings[field]=place;persist();$(info).textContent='Lokal gespeichert.';setFeedback('Adresse gespeichert.');if(settings.mode===(field==='home'?'home':'work')||field==='manualStart')void runCheck();}catch(e){setFeedback(e.message||'Adresse konnte nicht gespeichert werden.');}finally{btn.disabled=false;}}
+function hRad(deg){return deg*Math.PI/180;}
+function haversine(a,b){const R=6371,p1=hRad(a.lat),p2=hRad(b.lat),dp=hRad(b.lat-a.lat),dl=hRad(b.lon-a.lon),v=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));}
+function resampleCoords(coords,cap=550){if(coords.length<=cap)return coords;const step=Math.ceil(coords.length/cap),out=[];for(let i=0;i<coords.length;i+=step)out.push(coords[i]);out.push(coords.at(-1));return out;}
+function coordsFromGeometry(g){if(!g)return[];let arr=[];if(g.type==='Point')arr=[g.coordinates];else if(g.type==='LineString'||g.type==='MultiPoint')arr=resampleCoords(g.coordinates,40);else if(g.type==='MultiLineString'||g.type==='Polygon')arr=g.coordinates.flatMap(a=>resampleCoords(a,20));else if(g.type==='MultiPolygon')arr=g.coordinates.flat(2);return arr.filter(x=>Array.isArray(x)&&Number.isFinite(+x[0])&&Number.isFinite(+x[1])).slice(0,75).map(x=>({lon:+x[0],lat:+x[1]}));}
+function distanceToSegment(p,a,b){const latR=Math.cos(hRad(p.lat)),dx=(b.lon-a.lon)*111.32*latR,dy=(b.lat-a.lat)*111.32,px=(p.lon-a.lon)*111.32*latR,py=(p.lat-a.lat)*111.32,den=dx*dx+dy*dy,t=den?Math.max(0,Math.min(1,(px*dx+py*dy)/den)):0;return Math.hypot(px-t*dx,py-t*dy);}
+function nearRoute(points,route){let best=Infinity;for(let p of points){for(let i=0;i<route.length-1;i++){let d=distanceToSegment(p,route[i],route[i+1]);if(d<best)best=d;if(best<0.10)return best;}}return best;}
+function classify(text,type){const s=(text+' '+type).toLowerCase();if(/vollsperr|gesperrt|sperrung|road_closed|closure|unfall|geisterfahr|falschfahr|accident|brand|feuer|sturm|gefahr|hazard|object_on_road|hindernis/.test(s))return 3;if(/stau|zähflüss|stockend|behinder|fahrbahnvereng|spur.*gesperrt|tagesbaustelle|maintenance|warning|roadwork|baustelle|construction|teilsperr/.test(s))return 2;return 1;}
+function safeText(t){if(Array.isArray(t))t=t.join(' ');if(t==null)return '';const d=document.createElement('div');d.innerHTML=String(t).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').slice(0,1500);return(d.textContent||'').replace(/\s+/g,' ').trim().slice(0,360);}
+function normBW(json){return (json.features||[]).map(f=>{const p=f.properties||{},name=safeText(p.street||p.road||''),description=safeText(p.description||p.title||p.comment||'');return {id:'bw:'+String(p.id||f.id||name+description).slice(0,100),name:name||(description.slice(0,55)||'Straßenmeldung'),description:description||safeText(p.subtype||p.type)||'Baustelle oder Verkehrshinweis',type:safeText(p.type||p.subtype),points:coordsFromGeometry(f.geometry),source:'MobiData BW'};});}
+function normHessen(json,daily=false){return (json.features||[]).map(f=>{const p=f.properties||{},name=safeText(p.street||p.strassennummer||p.title||'Straßenmeldung'),description=safeText([p.sperrungsart,p.kommentar,p.ortauskommentar,p.description].filter(Boolean).join(' · '));return{id:'he:'+String(f.id||p.name||name+description).slice(0,100),name,description:description||'Baustelle oder Verkehrshinweis',type:safeText(p.sperrungsart||p.title||''),points:coordsFromGeometry(f.geometry),source:'Verkehrsservice Hessen',daily};});}
+function normAutobahn(json,type){const list=Array.isArray(json)?json:Array.isArray(json[type])?json[type]:[];return list.filter(p=>!p.future).map(p=>{let pt=[];if(p.coordinate&&p.coordinate.lat!=null)pt=[{lat:+p.coordinate.lat,lon:+p.coordinate.long}];else if(typeof p.point==='string'){const a=p.point.split(',').map(Number);if(a.length===2&&a.every(Number.isFinite))pt=[{lon:a[0],lat:a[1]}];}const description=safeText(p.description);return{id:'ab:'+String(p.identifier||p.title||'').slice(0,100),name:safeText(p.title||p.subtitle||'Autobahn'),description:safeText([p.subtitle,description].filter(Boolean).join(' · ')),type:type==='closure'?'Sperrung':type==='warning'?'Warnung':'Baustelle',points:pt,source:'Autobahn GmbH'};});}
+function roadIds(routeJson){let refs=new Set();for(const leg of routeJson?.legs||[]){for(const st of leg.steps||[]){for(const str of [st.ref,st.name]){const m=String(str||'').match(/\bA\s*(\d{1,3})\b/i);if(m)refs.add('A'+m[1]);}}}return [...refs].slice(0,4);}
+async function roadRoute(origin,destination){const url=`https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;const json=await timeoutFetch(url,14000);if(json.code!=='Ok'||!json.routes?.[0]?.geometry?.coordinates?.length)throw Error('Routing nicht verfügbar');let r=json.routes[0];return{points:resampleCoords(r.geometry.coordinates,530).map(c=>({lon:c[0],lat:c[1]})),distance:r.distance/1000,roads:roadIds(r)};}
+function kmLabel(d){return d<1?Math.round(d*1000)+' m':(Math.round(d*10)/10).toLocaleString('de-DE')+' km';}
+function renderNotices(items,partial=false){$('notices').replaceChildren();$('noticeCount').textContent=items.length?`${Math.min(items.length,5)} Hinweise`:'0 Hinweise';if(!items.length){const box=document.createElement('div');box.className='empty';const a=document.createElement('b'),b=document.createElement('span');a.textContent=partial?'Kein Hinweis aus verfügbaren Quellen':'Keine wichtigen Meldungen gefunden';b.textContent=partial?'Mindestens eine Datenquelle konnte nicht geladen werden.':'Dies ist keine Garantie für freie Straßen oder fehlende Staus.';box.append(a,b);$('notices').append(box);return;}for(const item of items.slice(0,5)){const card=document.createElement('article');card.className='notice '+(item.level>=3?'emergency':item.level===2?'high':'');const top=document.createElement('div');top.className='notice-top';const badge=document.createElement('span');badge.className='chip '+(item.level>=3?'red':item.level===1?'grey':'');badge.textContent=item.level>=3?'Wichtig':item.level===2?'Beachten':'Hinweis';const dist=document.createElement('span');dist.className='km';dist.textContent=item.d<1?'in '+kmLabel(item.d)+' Nähe':'ca. '+kmLabel(item.d)+' entfernt';top.append(badge,dist);const title=document.createElement('div');title.className='notice-title';title.textContent=item.name;const desc=document.createElement('p');desc.className='notice-desc';desc.textContent=item.description;const footer=document.createElement('div');footer.className='notice-source';footer.textContent=item.source;card.append(top,title,desc,footer);$('notices').append(card);}}
+function listMatches(input,route,origin,mode,approx){const accepted=[];const seen=new Set(),cutoff=mode==='near'?12:(approx?4:1.8);for(const item of input){if(!item.points?.length)continue;const d=mode==='near'?Math.min(...item.points.map(p=>haversine(p,origin))):nearRoute(item.points,route);if(d>cutoff)continue;const level=classify(item.name+' '+item.description,item.type);if(level===1&&d>(mode==='near'?2.5:.55))continue;const norm=(item.name+'|'+item.description).toLowerCase().replace(/\s+/g,' ').slice(0,110);if(seen.has(norm))continue;seen.add(norm);accepted.push({...item,d,level});}accepted.sort((a,b)=>b.level-a.level||a.d-b.d);return accepted;}
+function hideCameraResults(){cameraToken++;$('cameraResults').hidden=true;$('cameraResults').replaceChildren();$('cameraCheck').disabled=false;$('cameraCheck').textContent='◎ Stationäre Blitzer prüfen';}
+function cameraMessage(message){const d=document.createElement('div');d.className='camera-msg';d.textContent=message;$('cameraResults').append(d);}
+function cameraBounds(points){const lat=points.map(p=>p.lat),lon=points.map(p=>p.lon);const minLat=Math.max(-90,Math.min(...lat)-.025),maxLat=Math.min(90,Math.max(...lat)+.025);const minLon=Math.max(-180,Math.min(...lon)-.035),maxLon=Math.min(180,Math.max(...lon)+.035);return [minLat,minLon,maxLat,maxLon].map(n=>n.toFixed(5)).join(',');}
+async function checkCameras(){
+const token=++cameraToken;const area=$('cameraResults');area.replaceChildren();area.hidden=false;$('cameraCheck').disabled=true;$('cameraCheck').textContent='Stationäre Messstellen werden gesucht …';
+try{
+  // This is a manually requested, pre-trip query. No automatic speed-camera alerts or background polling.
+  let origin=lastOrigin;if(!origin||Date.now()-lastCheckStarted>900000){origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;}
+  if(!validLocation(origin))throw Error('Bitte zuerst den Startpunkt mit GPS oder in den Einstellungen festlegen.');
+  let route=null;const destination=settings.mode==='work'?settings.work:settings.mode==='home'?settings.home:null;
+  if(settings.mode!=='near'){
+    if(!validLocation(destination))throw Error('Bitte zuerst das Ziel in den Einstellungen speichern.');
+    route=await roadRoute(origin,destination);
+  }
+  const pts=route?.points||[origin];const query=settings.mode==='near'
+      ? `[out:json][timeout:18];node["highway"="speed_camera"](around:12000,${origin.lat.toFixed(5)},${origin.lon.toFixed(5)});out body;`
+      : `[out:json][timeout:18];node["highway"="speed_camera"](${cameraBounds(pts)});out body;`;
+  const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query);
+  const reply=await timeoutFetch(url,22000);
+  if(token!==cameraToken)return;
+  if(!Array.isArray(reply.elements))throw Error('Unvollständige Antwort von OpenStreetMap.');
+  let items=reply.elements.filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon)).map(e=>({id:e.id,lat:e.lat,lon:e.lon,dist:settings.mode==='near'?haversine(origin,e):nearRoute([e],pts)})).filter(e=>e.dist<=(settings.mode==='near'?12:0.6)).sort((a,b)=>a.dist-b.dist);
+  const count=items.length;cameraMessage(count?`${count} kartierte stationäre Messstelle${count===1?'':'n'} ${settings.mode==='near'?'in deiner Umgebung':'in der Nähe der Route'} gefunden. Fahrtrichtung und Betriebsstatus sind nicht bestätigt.`:'Keine eingetragenen stationären Messstellen gefunden. Das bedeutet nicht, dass keine Kontrollen stattfinden.');
+  for(const item of items.slice(0,5)){const div=document.createElement('div');div.className='camera-entry';const a=document.createElement('span');a.textContent='Stationäre Messstelle (OSM)';const b=document.createElement('small');b.textContent='ca. '+kmLabel(item.dist);div.append(a,b);area.append(div);}
+  if(count>5)cameraMessage(`Weitere ${count-5} Einträge werden aus Gründen der Übersichtlichkeit nicht angezeigt.`);
+  cameraMessage('Quelle: © OpenStreetMap-Mitwirkende (ODbL). Die Einträge sind keine aktuellen mobilen Meldungen.');
+}catch(e){if(token!==cameraToken)return;cameraMessage('Messstellen derzeit nicht verfügbar: '+(e?.message||'Netzwerkfehler')+'.');}
+finally{if(token===cameraToken){$('cameraCheck').disabled=false;$('cameraCheck').textContent='◎ Stationäre Blitzer erneut prüfen';}}
+}
+function googleLink(origin,destination){const v=a=>a.lat.toFixed(6)+','+a.lon.toFixed(6);return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(v(origin))+'&destination='+encodeURIComponent(v(destination))+'&travelmode=driving';}
+async function runCheck(){hideCameraResults();if(checking){checkToken++;}const token=++checkToken;lastCheckStarted=Date.now();setLoading(true);$('mapsLink').hidden=true;$('statusTime').textContent='Prüfung läuft';setStatus('Wird geprüft','Verkehr wird geprüft …','GPS, Strecke und amtliche Meldungen werden abgefragt.');$('noticeCount').textContent='…';renderNotices([]);$('noticeCount').textContent='…';renderMode();try{
+let origin=settings.startMode==='gps'?await gpsLocation():settings.manualStart;
+if(!validLocation(origin)){openSettings('Bitte eine Startadresse eingeben oder GPS aktivieren.');throw Error('Startpunkt fehlt.');}
+if(token!==checkToken)return;
+let destination=settings.mode==='work'?settings.work:settings.mode==='home'?settings.home:null;
+if(settings.mode!=='near'&&!validLocation(destination)){openSettings('Bitte zuerst das Ziel für die gewählte Fahrtrichtung speichern.');throw Error('Das Ziel ist noch nicht eingerichtet.');}
+let route=null,approx=false,problems=[];
+if(settings.mode!=='near'){try{route=await roadRoute(origin,destination);}catch{approx=true;problems.push('Route');route={points:[origin,destination],distance:haversine(origin,destination),roads:[]};}if(token!==checkToken)return;$('routeDistance').textContent='~ '+Math.round(route.distance)+' km';$('mapsLink').href=googleLink(origin,destination);$('mapsLink').hidden=false;}
+const data=[];let good=0,fail=0;const feedTasks=[
+['BW',()=>timeoutFetch('https://api.mobidata-bw.de/datasets/traffic/roadworks/roadworks_geojson.json',12500).then(normBW)],
+['Hessen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poiroadworks.json',12500).then(j=>normHessen(j))],
+['Hessen Tagesbaustellen',()=>timeoutFetch('https://verkehrsservice.hessen.de/syncdata/poidora.json',12500).then(j=>normHessen(j,true))]
+];
+if(settings.mode!=='near'){let roads=route.roads.length?route.roads:[];for(const road of roads)for(const type of ['warning','closure','roadworks'])feedTasks.push([road+' '+type,()=>timeoutFetch('https://verkehr.autobahn.de/o/autobahn/'+road+'/services/'+type,12500).then(j=>normAutobahn(j,type))]);}
+const response=await Promise.allSettled(feedTasks.map(([name,fn])=>fn()));if(token!==checkToken)return;
+response.forEach((r,i)=>{if(r.status==='fulfilled'&&Array.isArray(r.value)){good++;data.push(...r.value);}else{fail++;problems.push(feedTasks[i][0]);}});
+const matches=listMatches(data,route?.points,origin,settings.mode,approx);lastFound=matches;lastOrigin=origin;lastDestination=destination;
+const partial=fail>0||approx;
+const now=new Date();$('statusTime').textContent=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const source=`${good}/${feedTasks.length} Quellen${partial?' · eingeschränkt':''}`;
+if(!good){setStatus('Nicht möglich','Daten nicht verfügbar','Die Verkehrsquellen konnten nicht geladen werden. Bitte später erneut versuchen oder die Strecke mit Live-Verkehr öffnen.','bad',source);}
+else if(matches.length){setStatus(partial?'Hinweise · unvollständig':'Aktuelle Hinweise',matches.length===1?'1 wichtiger Hinweis':`${matches.length} wichtige Hinweise`,settings.mode==='near'?'In deiner Umgebung gefunden.':approx?'In der Nähe einer grob abgeschätzten Strecke gefunden.':'In der Nähe deiner berechneten Strecke gefunden.',matches[0].level>=3?'bad':'warn',source);}
+else if(partial){setStatus('Eingeschränkte Prüfung','Nicht vollständig prüfbar','Keine passenden Meldungen in den geladenen Daten. Einzelne Quellen oder die genaue Route fehlen.','warn',source);}
+else{setStatus('Prüfung abgeschlossen','Keine wichtigen Hinweise','In den verfügbaren Meldungen wurden keine größeren Störungen in deiner Nähe gefunden.','good',source);}
+renderNotices(matches,partial);
+}catch(err){if(token!==checkToken)return;setStatus('Prüfung nicht möglich','Prüfung unterbrochen',err?.message||'Bitte Verbindung und Einstellungen prüfen.','warn');$('statusTime').textContent='–';$('notices').replaceChildren();renderNotices([],true);}
+finally{if(token===checkToken)setLoading(false);}}
+for(const btn of document.querySelectorAll('.tab'))btn.addEventListener('click',()=>{settings.mode=btn.dataset.mode;persist();renderMode();void runCheck();});
+$('openSettings').addEventListener('click',()=>openSettings());$('closeSettings').addEventListener('click',closeSettings);$('settingsShade').addEventListener('click',e=>{if(e.target===$('settingsShade'))closeSettings();});
+$('checkButton').addEventListener('click',()=>void runCheck());$('cameraCheck').addEventListener('click',()=>void checkCameras());$('saveHome').addEventListener('click',()=>void saveAddress('home'));$('saveWork').addEventListener('click',()=>void saveAddress('work'));$('saveStart').addEventListener('click',()=>void saveAddress('manualStart'));
+$('saveHomeGps').addEventListener('click',async()=>{const btn=$('saveHomeGps');btn.disabled=true;setFeedback('GPS-Position wird ermittelt …');try{const p=await gpsLocation();settings.home={...p,label:'Gespeicherter GPS-Standort'};persist();updateFields();setFeedback('Zuhause wurde nur auf diesem Gerät gespeichert.');if(settings.mode==='home')void runCheck();}catch(e){setFeedback(e.message);}finally{btn.disabled=false;}});
+for(const [id,mode] of [['startGps','gps'],['startManual','manual']])$(id).addEventListener('click',()=>{settings.startMode=mode;persist();updateFields();if(mode==='gps')setFeedback('GPS wird beim nächsten Prüfen verwendet.');else setFeedback('Bitte Startadresse eingeben und speichern.');});
+$('clearSaved').addEventListener('click',()=>{if(!confirm('Alle lokal gespeicherten Ziele und Einstellungen löschen?'))return;localStorage.removeItem(STORE);settings={...DEFAULT};updateFields();renderMode();setFeedback('Lokale Daten gelöscht.');});
+renderMode();updateFields();window.addEventListener('pageshow',e=>{if(e.persisted&&!checking)void runCheck();});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});window.addEventListener('focus',()=>{if(!checking&&Date.now()-lastCheckStarted>30000)void runCheck();});setTimeout(()=>void runCheck(),250);
+</script>
+</body>
+</html>
